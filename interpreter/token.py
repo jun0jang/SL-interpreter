@@ -1,6 +1,6 @@
 '''
 토큰: 의미를 가지는 최소 단위
-단어: 토큰 규칙과 일치하는 문자열 그 자체
+단어: 토큰 패턴과 일치하는 문자열 그 자체
 
 토큰      단어
 If       if
@@ -9,10 +9,17 @@ VarName  foo, bar
 IntNum   100, 200
 '''
 
+NAME_LETTER = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_'
+OPERATOR_LETTER = ('==', '!=', '<=', '>=', '<', '>'
+                   '&&', '||', '!',
+                   '+', '-', '*', '/', '%')
+SPECIAL_LETTER = ('(', ')', '{', '}', '[', ']', '=', ',')  # 영문자, 언더바, 연산자를 제외한 특수 문자
+
+
 class _Tokens:
     def __init__(self):
         self._tokens = {}           # 토큰: 인덱스
-        self._token_words = {}      # 단어: 토큰 인덱스
+        self.words = {}             # 단어: 토큰 인덱스
 
     def __getattr__(self, key):
         ''' self.Token, self['Token'] 형식을 가능하게 한다. '''
@@ -23,20 +30,23 @@ class _Tokens:
         :param word: 단어
         :return: 단어의 토큰
         '''
-        for token_word, token in self._token_words.items():
-            if (word == token_word):
-                return token
+        token = self.words.get(word)
+        if token:
+            return token
 
-        if word.isdigit(): return self.Integer
-        if word.replace('.', '', 1).isdigit(): return self.Float
-        if word.isprintable(): return self.Indent
+        if word.isdigit():
+            return self.Integer
+        if word.replace('.', '', 1).isdigit():
+            return self.Float
+        if word[0] in NAME_LETTER:
+            return self.Name
         return self.Others
 
     def add_tkn(self, name, *words):
         index = len(self._tokens)
         self._tokens[name] = index
         for word in words:
-            self._token_words[word] = index
+            self.words[word] = index
 
 
 tokens = _Tokens()
@@ -45,7 +55,7 @@ tokens.add_tkn('Integer')                  # 데이터 타입 토큰화
 tokens.add_tkn('Float')
 tokens.add_tkn('String')
 
-tokens.add_tkn('Letter')                   # 단어
+tokens.add_tkn('Name')                   # 단어
 tokens.add_tkn('Var', 'var')               # 변수 토큰화
 tokens.add_tkn('Global', 'global')
 tokens.add_tkn('GlobalVar')
@@ -80,13 +90,14 @@ tokens.add_tkn('Break', 'break')
 tokens.add_tkn('Continue', 'continue')
 tokens.add_tkn('Exit', 'exit')
 
-tokens.add_tkn('Lparen', '(')              # 식 (expression) 토큰화
-tokens.add_tkn('Rparen', ')')
+tokens.add_tkn('LeftParen', '(')              # 식 (expression) 토큰화
+tokens.add_tkn('RightParen', ')')
 tokens.add_tkn('Plus', '+')
 tokens.add_tkn('Minus', '-')
 tokens.add_tkn('Multi', '*')
 tokens.add_tkn('Divi', '/')
 tokens.add_tkn('Mod', '%')
+tokens.add_tkn('Equal', '==')
 tokens.add_tkn('Less', '<')
 tokens.add_tkn('LessEqual', '<=')
 tokens.add_tkn('Great', '>')
@@ -101,4 +112,4 @@ tokens.add_tkn('EofProgramme')
 tokens.add_tkn('EofLine')
 tokens.add_tkn('ErrorToken')
 
-del _Tokens.add_tkn # 메소드는 디스크립터기 때문에 클래스 속성 삭제
+del _Tokens.add_tkn  # 메소드는 디스크립터기 때문에 클래스 속성 삭제
