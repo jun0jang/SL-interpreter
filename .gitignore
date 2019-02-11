@@ -1,4 +1,8 @@
 
 __pycache__
-env/
 .idea/
+env/
+dist/
+build/
+*.egg
+*.egg-info/
